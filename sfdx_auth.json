@@ -1,0 +1,12 @@
+{
+  "status": 0,
+  "result": {
+    "username": "ggk1298-dlvu@force.com",
+    "id": "00DfK000008RVguUAG",
+    "connectedStatus": "Connected",
+    "accessToken": "00DfK000008RVgu!AQEAQAEdBnUTrgYTXpL4B_AxphUxs0SyPI4CgqIuh78jF4LobtcKxbmuxmDakDHszXJA1M.b1nJbXpSMaeX6bWu1CUYO7yBS",
+    "instanceUrl": "https://app-flow-7140.my.salesforce.com",
+    "clientId": "PlatformCLI",
+    "alias": "my-dev-hub"
+  }
+}
