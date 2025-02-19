@@ -7,6 +7,10 @@ on:
   pull_request:
     branches:
       - main
+  workflow_run:
+    workflows: ["Salesforce CI/CD Practice"]
+    types: 
+      - completed  # Triggers when workflow completes
 
 jobs:
   salesforce-ci:
@@ -21,7 +25,7 @@ jobs:
 
       - name: Authenticate with Salesforce
         run: |
-          echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
+          echo "${{ secrets.EMAIL_USERNAME }}" > sfdx_auth.txt
           sfdx force:auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
           sfdx force:config:set instanceUrl=https://login.salesforce.com --global
           echo "🔍 Checking Authenticated Orgs:"
@@ -59,3 +63,33 @@ jobs:
           echo "🗑 Deleting Scratch Org..."
           sfdx force:org:list || echo "⚠️ No orgs found!"
           sfdx force:org:delete -u ci-scratch-org --noprompt || echo "⚠️ Scratch Org Not Found, Skipping Deletion."
+
+  notify:
+    needs: salesforce-ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email on Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ Salesforce CI/CD Workflow Failed!"
+          body: "Your Salesforce CI/CD pipeline has failed. Check GitHub Actions logs for details."
+          to: your-email@gmail.com
+          from: "GitHub Actions <your-email@gmail.com>"
+
+      - name: Send Email on Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "✅ Salesforce CI/CD Workflow Succeeded!"
+          body: "Your Salesforce CI/CD pipeline ran successfully! 🎉"
+          to: your-email@gmail.com
+          from: "GitHub Actions <your-email@gmail.com>"
