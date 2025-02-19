@@ -68,7 +68,7 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: ${{ job.status }}: Salesforce CI/CD Workflow
+          subject: "${{ job.status }}: Salesforce CI/CD Workflow"
           body: "Your Salesforce CI/CD pipeline has completed with status: ${{ job.status }}. Check GitHub Actions logs for details."
           to: ggk1298@gmail.com
           from: "GitHub Actions <ggk1298@gmail.com>"
