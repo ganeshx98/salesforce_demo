@@ -23,9 +23,10 @@ jobs:
         run: |
           echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
           sfdx auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org
+          sfdx force:org:list
 
       - name: Verify Authentication
-        run: sfdx force:org:list
+        run: sfdx force:org:display -u ci-scratch-org
 
       - name: Create Scratch Org
         run: sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1
@@ -39,5 +40,6 @@ jobs:
       - name: Delete Scratch Org
         if: always()
         run: sfdx force:org:delete -u ci-scratch-org --noprompt
+
 
 
