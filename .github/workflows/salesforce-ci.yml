@@ -54,4 +54,8 @@ jobs:
           sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage || echo "❌ Apex Tests Failed!"
 
       - name: Delete Scratch Org (Ignore Errors)
-        if: always(
+        if: always()
+        run: |
+          echo "🗑 Deleting Scratch Org..."
+          sfdx force:org:list || echo "⚠️ No orgs found!"
+          sfdx force:org:delete -u ci-scratch-org --noprompt || echo "⚠️ Scratch Org Not Found, Skipping Deletion."
