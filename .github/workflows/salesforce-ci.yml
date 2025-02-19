@@ -22,9 +22,10 @@ jobs:
       - name: Authenticate with Salesforce
         run: |
           echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
-          sfdx auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org
+          sfdx auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
+          sfdx force:config:set instanceUrl=https://login.salesforce.com
           echo "🔍 Checking Authenticated Orgs:"
-          sfdx force:org:list
+          sfdx force:org:list || echo "❌ No orgs found!"
           echo "🔍 Checking if ci-scratch-org is authenticated:"
           sfdx force:org:display -u ci-scratch-org || echo "❌ Authentication Failed!"
 
@@ -38,9 +39,9 @@ jobs:
           echo "🚀 Creating Scratch Org..."
           sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "❌ Scratch Org Creation Failed!"
           echo "🔍 Checking created orgs:"
-          sfdx force:org:list
+          sfdx force:org:list || echo "❌ No orgs found!"
           echo "🔍 Checking if ci-scratch-org exists after creation:"
-          sfdx force:org:display -u ci-scratch-org || echo "❌ Scratch Org Creation Failed!"
+          sfdx force:org:display -u ci-scratch-org || echo "❌ Scratch Org Not Found!"
 
       - name: Push Source to Scratch Org
         run: |
@@ -56,5 +57,5 @@ jobs:
         if: always()
         run: |
           echo "🗑 Deleting Scratch Org..."
-          sfdx force:org:list
+          sfdx force:org:list || echo "⚠️ No orgs found!"
           sfdx force:org:delete -u ci-scratch-org --noprompt || echo "⚠️ Scratch Org Not Found, Skipping Deletion."
