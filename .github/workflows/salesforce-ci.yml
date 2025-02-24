@@ -72,3 +72,10 @@ jobs:
           body: "Your Salesforce CI/CD pipeline has completed with status: ${{ job.status }}. Check GitHub Actions logs for details."
           to: ggk1298@gmail.com
           from: "GitHub Actions <ggk1298@gmail.com>"
+
+      - name: Notify Microsoft Teams
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "title": "GitHub Actions Notification",
+             "text": "🔔 Workflow *${{ github.workflow }}* has *${{ job.status }}*! \nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}*"
+          }' ${{ secrets.https://britesystems.webhook.office.com/webhookb2/0be9b505-fe52-44b0-8dbf-4ebff1d36c52@31a96188-85d8-4196-847a-664d20d5ba29/IncomingWebhook/2fdcdd61382c45a3b0cb778f2337c654/e81c210b-9c8b-4441-b280-c06f770bb4e5/V2NLHFOY1xE8mzTV4vQVEoQIH6h78dsQg3Kq1cIIFS9s41 }}
