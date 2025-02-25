@@ -79,3 +79,10 @@ jobs:
             "title": "GitHub Actions Notification",
             "text": "🔔 Workflow *${{ github.workflow }}* has *${{ job.status }}*! \nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}*"
           }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+
+
+      - name: Notify Microsoft Teams
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "text": "📂 A new file has been committed to *${{ github.repository }}* on branch *${{ github.ref }}* by *${{ github.actor }}*.\nCommit Message: *${{ github.event.head_commit.message }}*"
+          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
