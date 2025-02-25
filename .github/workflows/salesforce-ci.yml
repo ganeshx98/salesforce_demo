@@ -24,41 +24,41 @@ jobs:
           echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
           sfdx force:auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
           sfdx force:config:set instanceUrl=https://login.salesforce.com --global
-          echo "🔍 Checking Authenticated Orgs:"
-          sfdx force:org:list || echo "❌ No orgs found!"
-          echo "🔍 Checking if ci-scratch-org is authenticated:"
-          sfdx force:org:display -u ci-scratch-org || echo "❌ Authentication Failed!"
+          echo "Checking Authenticated Orgs:"
+          sfdx force:org:list || echo "No orgs found!"
+          echo "Checking if ci-scratch-org is authenticated:"
+          sfdx force:org:display -u ci-scratch-org || echo "Authentication Failed!"
 
       - name: Verify Authentication
         run: |
-          echo "🔍 Verifying authentication for ci-scratch-org..."
-          sfdx force:org:display -u ci-scratch-org || echo "❌ Authentication verification failed!"
+          echo "Verifying authentication for ci-scratch-org..."
+          sfdx force:org:display -u ci-scratch-org || echo "Authentication verification failed!"
 
       - name: Create Scratch Org
         run: |
-          echo "🚀 Creating Scratch Org..."
-          sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "❌ Scratch Org Creation Failed!"
-          echo "🔍 Checking created orgs:"
-          sfdx force:org:list || echo "❌ No orgs found!"
-          echo "🔍 Checking if ci-scratch-org exists after creation:"
-          sfdx force:org:display -u ci-scratch-org || echo "❌ Scratch Org Not Found!"
+          echo "Creating Scratch Org..."
+          sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "Scratch Org Creation Failed!"
+          echo "Checking created orgs:"
+          sfdx force:org:list || echo "No orgs found!"
+          echo "Checking if ci-scratch-org exists after creation:"
+          sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
 
       - name: Push Source to Scratch Org
         run: |
-          echo "🚀 Pushing source to Scratch Org..."
-          sfdx force:source:push -u ci-scratch-org || echo "❌ Source Push Failed!"
+          echo "Pushing source to Scratch Org..."
+          sfdx force:source:push -u ci-scratch-org || echo "Source Push Failed!"
 
       - name: Run Apex Tests
         run: |
-          echo "🛠 Running Apex Tests..."
-          sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage || echo "❌ Apex Tests Failed!"
+          echo "Running Apex Tests..."
+          sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage || echo "Apex Tests Failed!"
 
       - name: Delete Scratch Org (Ignore Errors)
         if: always()
         run: |
-          echo "🗑 Deleting Scratch Org..."
-          sfdx force:org:list || echo "⚠️ No orgs found!"
-          sfdx force:org:delete -u ci-scratch-org --noprompt || echo "⚠️ Scratch Org Not Found, Skipping Deletion."
+          echo "Deleting Scratch Org..."
+          sfdx force:org:list || echo "No orgs found!"
+          sfdx force:org:delete -u ci-scratch-org --noprompt || echo "Scratch Org Not Found, Skipping Deletion."
 
       - name: Send Email Notification
         if: always()
@@ -77,7 +77,7 @@ jobs:
         run: |
           curl -H "Content-Type: application/json" -d '{
             "title": "GitHub Actions Notification",
-            "text": "🔔 Workflow *${{ github.workflow }}* has *${{ job.status }}*! \nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}* \n📂 A new file has been committed with message: *${{ github.event.head_commit.message }}*"
+            "text": "Workflow *${{ github.workflow }}* has *${{ job.status }}*! \nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}* \nA new file has been committed with message: *${{ github.event.head_commit.message }}*"
           }' ${{ secrets.TEAMS_WEBHOOK_URL }}
 
       - name: Extract Jira Issue Key from Commit Message
@@ -93,6 +93,6 @@ jobs:
           -H "Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)" \
           --data @- ${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment <<EOF
           {
-            "body": "🔄 This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            "body": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
           }
           EOF
