@@ -19,17 +19,6 @@ jobs:
       - name: Install Salesforce CLI
         run: npm install -g sfdx-cli
 
-      - name: Ensure SFDX Project Structure
-        run: |
-          if [ ! -f "sfdx-project.json" ]; then
-            echo "❌ No sfdx-project.json found! Make sure this is a valid SFDX project."
-            exit 1
-          fi
-          if [ ! -d "force-app" ]; then
-            echo "⚠️ force-app directory is missing! Creating it now."
-            mkdir -p force-app
-          fi
-
       - name: Authenticate with Salesforce
         run: |
           echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
@@ -52,8 +41,15 @@ jobs:
           sfdx force:org:list
           sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
 
-      - name: Push Source to Scratch Org
-        run: sfdx force:source:push -u ci-scratch-org
+      - name: Deploy Source to Salesforce Org
+        run: |
+          if sfdx force:org:display -u ci-scratch-org --json | jq -r '.result.devHubId' | grep -q '00D'; then
+            echo "Deploying to Scratch Org..."
+            sfdx force:source:push -u ci-scratch-org
+          else
+            echo "Deploying to Non-Scratch Org..."
+            sfdx force:source:deploy -u ci-scratch-org -p force-app
+          fi
 
       - name: Run Apex Tests
         run: sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage
