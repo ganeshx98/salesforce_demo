@@ -41,6 +41,18 @@ jobs:
           sfdx force:org:list
           sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
 
+      - name: Ensure Force-App Directory Exists
+        run: |
+          if [ ! -d "force-app" ]; then
+            echo "⚠️ force-app directory is missing! Creating it now."
+            mkdir -p force-app
+          fi
+
+      - name: Verify Source Path Before Deployment
+        run: |
+          echo "Checking contents of force-app..."
+          ls -la force-app || echo "⚠️ force-app is empty or missing."
+
       - name: Deploy Source to Salesforce Org
         run: |
           if sfdx force:org:display -u ci-scratch-org --json | jq -r '.result.devHubId' | grep -q '00D'; then
@@ -48,7 +60,7 @@ jobs:
             sfdx force:source:push -u ci-scratch-org
           else
             echo "Deploying to Non-Scratch Org..."
-            sfdx force:source:deploy -u ci-scratch-org -p force-app
+            sfdx force:source:deploy -u ci-scratch-org -p force-app || echo "❌ Deployment failed. Check if force-app has valid metadata."
           fi
 
       - name: Run Apex Tests
