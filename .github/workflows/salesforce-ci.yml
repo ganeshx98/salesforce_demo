@@ -16,6 +16,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Verify SFDX Project Structure
+        run: ls -la && cat sfdx-project.json || echo "⚠️ Not an SFDX Project!"
+
       - name: Install Salesforce CLI
         run: npm install -g sfdx-cli
 
@@ -24,22 +27,17 @@ jobs:
           echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
           sfdx force:auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
           sfdx force:config:set instanceUrl=https://login.salesforce.com --global
-          echo "Checking Authenticated Orgs:"
-          sfdx force:org:list || echo "No orgs found!"
-          echo "Checking if ci-scratch-org is authenticated:"
-          sfdx force:org:display -u ci-scratch-org || echo "Authentication Failed!"
 
-      - name: Verify Authentication
+      - name: Ensure Inside SFDX Project
         run: |
-          echo "Verifying authentication for ci-scratch-org..."
-          sfdx force:org:display -u ci-scratch-org || echo "Authentication verification failed!"
+          if [ ! -f "sfdx-project.json" ]; then
+            echo "❌ No sfdx-project.json found! Make sure this is a valid SFDX project."
+            exit 1
+          fi
 
       - name: Create Scratch Org
         run: |
-          echo "Creating Scratch Org..."
-          sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "Scratch Org Creation Failed!"
-          sfdx force:org:list
-          sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
+          sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "❌ Scratch Org Creation Failed!"
 
       - name: Push Source to Scratch Org
         run: sfdx force:source:push -u ci-scratch-org
@@ -49,7 +47,7 @@ jobs:
 
       - name: Delete Scratch Org (Ignore Errors)
         if: always()
-        run: sfdx force:org:delete -u ci-scratch-org --noprompt || echo "Scratch Org Deletion Failed or Org not Found"
+        run: sfdx force:org:delete -u ci-scratch-org --noprompt || echo "⚠️ Scratch Org Not Found, Skipping Deletion."
 
       - name: Send Email Notification
         if: always()
