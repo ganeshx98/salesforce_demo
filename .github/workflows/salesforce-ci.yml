@@ -13,96 +13,105 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Install Salesforce CLI
-        run: npm install -g sfdx-cli
-
-      - name: Authenticate with Salesforce
-        run: |
-          echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
-          sfdx force:auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
-          sfdx force:config:set instanceUrl=https://login.salesforce.com --global
-          echo "Checking Authenticated Orgs:"
-          sfdx force:org:list || echo "No orgs found!"
-          echo "Checking if ci-scratch-org is authenticated:"
-          sfdx force:org:display -u ci-scratch-org || echo "Authentication Failed!"
-
-      - name: Verify Authentication
-        run: |
-          echo "Verifying authentication for ci-scratch-org..."
-          sfdx force:org:display -u ci-scratch-org || echo "Authentication verification failed!"
-
-      - name: Create Scratch Org
-        run: |
-          echo "Creating Scratch Org..."
-          sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "Scratch Org Creation Failed!"
-          sfdx force:org:list
-          sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
-
-      - name: Ensure Force-App Directory Exists
-        run: |
-          if [ ! -d "force-app" ]; then
-            echo "⚠️ force-app directory is missing! Creating it now."
-            mkdir -p force-app
-          fi
-
-      - name: Verify Source Path Before Deployment
-        run: |
-          echo "Checking contents of force-app..."
-          ls -la force-app || echo "⚠️ force-app is empty or missing."
-
-      - name: Deploy Source to Salesforce Org
-        run: |
-          if sfdx force:org:display -u ci-scratch-org --json | jq -r '.result.devHubId' | grep -q '00D'; then
-            echo "Deploying to Scratch Org..."
-            sfdx force:source:push -u ci-scratch-org
-          else
-            echo "Deploying to Non-Scratch Org..."
-            sfdx force:source:deploy -u ci-scratch-org -p force-app || echo "❌ Deployment failed. Check if force-app has valid metadata."
-          fi
-
-      - name: Run Apex Tests
-        run: sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage
-
-      - name: Delete Scratch Org (Ignore Errors)
-        if: always()
-        run: sfdx force:org:delete -u ci-scratch-org --noprompt || echo "Scratch Org Deletion Failed or Org not Found"
-
-      - name: Send Email Notification
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 587
-          username: ${{ secrets.EMAIL_USERNAME }}
-          password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: "${{ job.status }}: Salesforce CI/CD Workflow"
-          body: "Your Salesforce CI/CD pipeline has completed with status: ${{ job.status }}. Check GitHub Actions logs for details."
-          to: ggk1298@gmail.com
-          from: "GitHub Actions <ggk1298@gmail.com>"
-
-      - name: Notify Microsoft Teams
-        run: |
-          curl -H "Content-Type: application/json" -d '{
-            "title": "GitHub Actions Notification",
-            "text": "Workflow \"${{ github.workflow }}\" has completed with status: ${{ job.status }}!\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nTriggered by: ${{ github.actor }}\nCommit Message: ${{ github.event.head_commit.message }}"
-          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
-
-      - name: Extract Jira Issue Key from Commit Message
-        id: extract_jira
-        run: |
-          ISSUE_KEY=$(git log -1 --pretty=%B | grep -oE '[A-Z]+-[0-9]+' || echo "NoIssue")
-          echo "JIRA_ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
-
-      - name: Comment on Jira Issue
-        if: env.JIRA_ISSUE_KEY != 'NoIssue'
-        run: |
-          curl --request POST \
-          --url '${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment' \
-          --header 'Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)' \
-          --header 'Content-Type: application/json' \
-          --data '{
-            "body": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
-          }'
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+  
+    - name: Install Salesforce CLI
+      run: npm install -g sfdx-cli
+  
+    - name: Authenticate with Salesforce
+      run: |
+        echo "${{ secrets.SF_AUTH_URL }}" > sfdx_auth.txt
+        sfdx force:auth:sfdxurl:store -f sfdx_auth.txt --setalias ci-scratch-org --setdefaultusername
+        sfdx force:config:set instanceUrl=https://login.salesforce.com --global
+        echo "Checking Authenticated Orgs:"
+        sfdx force:org:list || echo "No orgs found!"
+        echo "Checking if ci-scratch-org is authenticated:"
+        sfdx force:org:display -u ci-scratch-org || echo "Authentication Failed!"
+  
+    - name: Verify Authentication
+      run: |
+        echo "Verifying authentication for ci-scratch-org..."
+        sfdx force:org:display -u ci-scratch-org || echo "Authentication verification failed!"
+  
+    - name: Create Scratch Org
+      run: |
+        echo "Creating Scratch Org..."
+        sfdx force:org:create -f config/project-scratch-def.json -a ci-scratch-org -s -d 1 || echo "Scratch Org Creation Failed!"
+        sfdx force:org:list
+        sfdx force:org:display -u ci-scratch-org || echo "Scratch Org Not Found!"
+  
+    - name: Ensure Force-App Directory Exists
+      run: |
+        if [ ! -d "force-app" ]; then
+          echo "⚠️ force-app directory is missing! Creating it now."
+          mkdir -p force-app
+        fi
+  
+    - name: Verify Source Path Before Deployment
+      run: |
+        echo "Checking contents of force-app..."
+        ls -la force-app || echo "⚠️ force-app is empty or missing."
+  
+    - name: Deploy Source to Salesforce Org
+      run: |
+        if sfdx force:org:display -u ci-scratch-org --json | jq -r '.result.devHubId' | grep -q '00D'; then
+          echo "Deploying to Scratch Org..."
+          sfdx force:source:push -u ci-scratch-org
+        else
+          echo "Deploying to Non-Scratch Org..."
+          sfdx force:source:deploy -u ci-scratch-org -p force-app || echo "❌ Deployment failed. Check if force-app has valid metadata."
+        fi
+  
+    - name: Run Apex Tests
+      run: sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage
+  
+    - name: Delete Scratch Org (Ignore Errors)
+      if: always()
+      run: sfdx force:org:delete -u ci-scratch-org --noprompt || echo "Scratch Org Deletion Failed or Org not Found"
+  
+    - name: Send Email Notification
+      if: always()
+      uses: dawidd6/action-send-mail@v3
+      with:
+        server_address: smtp.gmail.com
+        server_port: 587
+        username: ${{ secrets.EMAIL_USERNAME }}
+        password: ${{ secrets.EMAIL_PASSWORD }}
+        subject: "${{ job.status }}: Salesforce CI/CD Workflow"
+        body: "Your Salesforce CI/CD pipeline has completed with status: ${{ job.status }}. Check GitHub Actions logs for details."
+        to: ggk1298@gmail.com
+        from: "GitHub Actions <ggk1298@gmail.com>"
+  
+    - name: Notify Microsoft Teams on Failure
+      if: failure()
+      run: |
+        curl -H "Content-Type: application/json" -d '{
+          "title": "🚨 GitHub Actions Build Failed!",
+          "text": "❌ Workflow \"${{ github.workflow }}\" has *failed*! \n\nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}* \nCommit Message: *${{ github.event.head_commit.message }}* \nCheck logs: [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+  
+    - name: Notify Microsoft Teams on Success
+      if: success()
+      run: |
+        curl -H "Content-Type: application/json" -d '{
+          "title": "✅ GitHub Actions Build Succeeded!",
+          "text": "🎉 Workflow \"${{ github.workflow }}\" has *succeeded*! \n\nRepository: *${{ github.repository }}* \nBranch: *${{ github.ref }}* \nTriggered by: *${{ github.actor }}* \nCommit Message: *${{ github.event.head_commit.message }}* \nCheck logs: [GitHub Actions](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+        }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+  
+    - name: Extract Jira Issue Key from Commit Message
+      id: extract_jira
+      run: |
+        ISSUE_KEY=$(git log -1 --pretty=%B | grep -oE '[A-Z]+-[0-9]+' || echo "NoIssue")
+        echo "JIRA_ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
+  
+    - name: Comment on Jira Issue
+      if: env.JIRA_ISSUE_KEY != 'NoIssue'
+      run: |
+        curl --request POST \
+        --url '${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment' \
+        --header 'Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)' \
+        --header 'Content-Type: application/json' \
+        --data '{
+          "body": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+        }'
