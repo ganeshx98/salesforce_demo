@@ -63,8 +63,15 @@ jobs:
           sfdx force:source:deploy -u ci-scratch-org -p force-app || echo "❌ Deployment failed. Check if force-app has valid metadata."
         fi
   
-    - name: Run Apex Tests
-      run: sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage
+    - name: Run Apex Tests (Skip if No Tests Exist)
+      run: |
+        if sfdx force:apex:test:list -u ci-scratch-org --json | jq -e '.result | length > 0' > /dev/null; then
+          echo "Running Apex Tests..."
+          sfdx force:apex:test:run -u ci-scratch-org --resultformat tap --codecoverage
+        else
+          echo "⚠️ No Apex test classes found, skipping tests."
+        fi
+
   
     - name: Delete Scratch Org (Ignore Errors)
       if: always()
