@@ -23,9 +23,24 @@ jobs:
         if: env.JIRA_ISSUE_KEY != 'NoIssue'
         run: |
           curl --request POST \
-          --url '${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment' \
-          --header 'Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)' \
-          --header 'Content-Type: application/json' \
+          --url "${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment" \
+          --header "Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)" \
+          --header "Accept: application/json" \
+          --header "Content-Type: application/json" \
           --data '{
-            "body": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
           }'
