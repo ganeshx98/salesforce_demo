@@ -19,15 +19,26 @@ jobs:
           ISSUE_KEY=$(git log -1 --pretty=%B | grep -oE '[A-Z]+-[0-9]+' || echo "NoIssue")
           echo "JIRA_ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
 
+      - name: Debug Environment
+        run: |
+          echo "JIRA Issue Key: $JIRA_ISSUE_KEY"
+          echo "JIRA URL: ${{ secrets.JIRA_URL }}"
+          echo "Checking if authentication works..."
+          curl --request GET \
+            --url "${{ secrets.JIRA_URL }}/rest/api/3/myself" \
+            --header "Authorization: Basic $(echo -n '${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}' | base64 -w 0)" \
+            --header "Accept: application/json"
+
       - name: Comment on Jira Issue
         if: env.JIRA_ISSUE_KEY != 'NoIssue'
         run: |
           curl --request POST \
-          --url "${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment" \
-          --header "Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)" \
-          --header "Accept: application/json" \
-          --header "Content-Type: application/json" \
-          --data '{
+            --url "${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment" \
+            --header "Authorization: Basic $(echo -n '${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}' | base64 -w 0)" \
+            --header "Accept: application/json" \
+            --header "Content-Type: application/json" \
+            --data @- <<EOF
+          {
             "body": {
               "type": "doc",
               "version": 1,
@@ -43,4 +54,5 @@ jobs:
                 }
               ]
             }
-          }'
+          }
+          EOF
