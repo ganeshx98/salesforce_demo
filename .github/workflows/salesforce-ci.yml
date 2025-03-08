@@ -65,3 +65,44 @@ jobs:
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/YOUR_REPO/actions/secrets/AWS_SECRET_ACCESS_KEY \
             -d "{\"encrypted_value\":\"$SECRET_KEY\"}"
+
+  notify:
+    needs: [salesforce-ci, rotate-aws-keys]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email Notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "${{ job.status }}: Salesforce CI/CD Workflow"
+          body: "Your Salesforce CI/CD pipeline has completed with status: ${{ job.status }}. Check GitHub Actions logs for details."
+          to: ggk1298@gmail.com
+          from: "GitHub Actions <ggk1298@gmail.com>"
+
+      - name: Notify Microsoft Teams
+        run: |
+          curl -H "Content-Type: application/json" -d '{
+            "title": "GitHub Actions Notification",
+            "text": "Workflow \"${{ github.workflow }}\" has completed with status: ${{ job.status }}!\nRepository: ${{ github.repository }}\nBranch: ${{ github.ref }}\nTriggered by: ${{ github.actor }}\nCommit Message: ${{ github.event.head_commit.message }}"
+          }' ${{ secrets.TEAMS_WEBHOOK_URL }}
+
+      - name: Extract Jira Issue Key from Commit Message
+        id: extract_jira
+        run: |
+          ISSUE_KEY=$(git log -1 --pretty=%B | grep -oE '[A-Z]+-[0-9]+' || echo "NoIssue")
+          echo "JIRA_ISSUE_KEY=$ISSUE_KEY" >> $GITHUB_ENV
+
+      - name: Comment on Jira Issue
+        if: env.JIRA_ISSUE_KEY != 'NoIssue'
+        run: |
+          curl --request POST \
+          --url '${{ secrets.JIRA_URL }}/rest/api/3/issue/${{ env.JIRA_ISSUE_KEY }}/comment' \
+          --header 'Authorization: Basic $(echo -n ${{ secrets.JIRA_EMAIL }}:${{ secrets.JIRA_API_TOKEN }} | base64)' \
+          --header 'Content-Type: application/json' \
+          --data '{
+            "body": "This issue is referenced in a new commit: https://github.com/${{ github.repository }}/commit/${{ github.sha }}"
+          }'
