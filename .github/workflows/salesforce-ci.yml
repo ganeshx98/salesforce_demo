@@ -49,7 +49,7 @@ jobs:
 
       - name: Invoke Lambda Function for Password Rotation
         run: |
-          NEW_KEYS=$(aws lambda invoke --function-name passwordRotation --payload '{}' response.json && cat response.json)
+          NEW_KEYS=$(aws lambda invoke --function-name paswordRotation --payload '{}' response.json && cat response.json)
           echo "New Access Key: $NEW_KEYS"
 
       - name: Update GitHub Secrets
